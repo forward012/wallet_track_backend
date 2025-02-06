@@ -81,6 +81,47 @@ app.post("/api/findOne", async (req, res) => {
   }
 });
 
+app.post("/api/addNewWallet", async (req, res) => {
+  const { name, address, pnl, volumn } = req.body;
+  console.log(name, address);
+  const currentTime = Math.floor(Date.now() / 1000);
+
+  const walletInfo = {
+    name: name,
+    address: address,
+    pnl: pnl,
+    volumn: volumn,
+    last_signatures: [],
+    recent_update: new Date().toISOString(),
+    recent_blocktime: currentTime,
+  };
+
+  try {
+    // Check if a wallet with the same address already exists
+    const existingWallet = await wallet_collection.findOne({
+      address: address,
+    });
+
+    if (existingWallet) {
+      // If it exists, respond with a 409 Conflict status
+      return res
+        .status(409)
+        .send("This wallet with this address already exists.");
+    }
+
+    const result = await wallet_collection.insertOne(walletInfo);
+    console.log("data-----", result, currentTime);
+    if (result.acknowledged) {
+      res.status(201).send(result); // Send back the result with a 201 Created status
+    } else {
+      res.status(404).send("No wallet found with that address");
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error updating data");
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
